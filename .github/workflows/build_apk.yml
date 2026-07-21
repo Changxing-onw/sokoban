@@ -1,0 +1,48 @@
+name: Build Android APK
+
+# 触发方式: push 到 main/master 分支自动构建, 或手动触发
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            autoconf automake libtool pkg-config zip unzip \
+            ccache git openjdk-17-jdk build-essential \
+            zlib1g-dev libffi-dev libssl-dev \
+            libncurses5-dev libncursesw5-dev libtinfo5 cmake
+
+      - name: Install buildozer
+        run: pip install buildozer cython==0.29.36
+
+      - name: Cache buildozer global
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            packages
+          key: buildozer-ubuntu-v1
+
+      - name: Build APK (debug)
+        run: buildozer -v android debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: sokoban-apk
+          path: bin/*.apk
+          if-no-files-found: error
